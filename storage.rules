@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow users to read/write their own files if authenticated
+    match /users/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Example: Allow public read access to a specific folder (e.g., 'public_assets')
+    // match /public_assets/{allPaths=**} {
+    //   allow read;
+    // }
+
+    // Deny all other access by default
+  }
+}
