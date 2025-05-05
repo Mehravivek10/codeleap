@@ -1,6 +1,7 @@
+// src/context/auth-context.tsx
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef, Component } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client'; // Ensure this imports the CLIENT SDK instance
 import { Skeleton } from '@/components/ui/skeleton'; // Keep skeleton for loading UI
@@ -48,6 +49,53 @@ async function handleSession(user: User | null) {
     }
 }
 
+// Basic Error Boundary
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class AuthErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    // Update state so the next render will show the fallback UI.
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // You can also log the error to an error reporting service
+    console.error("Auth Provider Error Boundary Caught:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      // You can render any custom fallback UI
+      return (
+           <div className="flex items-center justify-center min-h-screen bg-background">
+                <div className="flex flex-col items-center space-y-3 p-6 rounded-lg border border-destructive bg-destructive/10">
+                     <h1 className="text-lg font-semibold text-destructive">Application Error</h1>
+                     <p className="text-sm text-destructive-foreground">Could not load user session. Please try refreshing the page.</p>
+                     {/* Optional: Log details for user */}
+                      <pre className="mt-2 text-xs text-destructive-foreground/70 overflow-auto max-w-md">
+                        {this.state.error?.message}
+                      </pre>
+                 </div>
+          </div>
+       );
+    }
+
+    return this.props.children;
+  }
+}
+
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,48 +104,66 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Ensure Firebase client auth is initialized before subscribing
-    if (!auth) {
-        console.error("Firebase auth instance not available in AuthProvider.");
-        setLoading(false); // Stop loading if auth is missing
+    // Check if auth object has necessary methods, indicating it's likely initialized
+    if (!auth || typeof auth.onAuthStateChanged !== 'function') {
+        console.error("Firebase auth instance not available or not initialized in AuthProvider.");
+        // Attempt to delay slightly in case initialization is happening
+        setTimeout(() => {
+            if (!auth || typeof auth.onAuthStateChanged !== 'function') {
+                console.error("Firebase auth still not available after delay.");
+                setLoading(false); // Stop loading if auth is definitively missing
+            }
+        }, 500); // Wait 500ms
         return;
     }
 
+
     console.log("AuthProvider: Subscribing to auth state changes...");
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("Auth State Changed: UID:", firebaseUser?.uid ?? 'null', "Initial Load:", initialLoadDone.current);
-      setUser(firebaseUser); // Update user state immediately
+    let unsubscribe: (() => void) | null = null;
 
-      // Prevent multiple session calls if auth state changes rapidly
-      if (sessionHandlingInProgress.current) {
-          console.log("Auth Context: Session handling already in progress, skipping.");
-          return;
-      }
-      sessionHandlingInProgress.current = true;
+     try {
+         unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          console.log("Auth State Changed: UID:", firebaseUser?.uid ?? 'null', "Initial Load:", initialLoadDone.current);
+          setUser(firebaseUser); // Update user state immediately
 
-      try {
-            await handleSession(firebaseUser);
-      } finally {
-            sessionHandlingInProgress.current = false;
-            // Mark loading as complete only after the first auth check and session handling attempt
-            if (!initialLoadDone.current) {
-                setLoading(false);
-                initialLoadDone.current = true;
-                console.log("AuthProvider: Initial load complete.");
-            }
-      }
+          // Prevent multiple session calls if auth state changes rapidly
+          if (sessionHandlingInProgress.current) {
+              console.log("Auth Context: Session handling already in progress, skipping.");
+              return;
+          }
+          sessionHandlingInProgress.current = true;
+
+          try {
+                await handleSession(firebaseUser);
+          } finally {
+                sessionHandlingInProgress.current = false;
+                // Mark loading as complete only after the first auth check and session handling attempt
+                if (!initialLoadDone.current) {
+                    setLoading(false);
+                    initialLoadDone.current = true;
+                    console.log("AuthProvider: Initial load complete.");
+                }
+          }
 
 
-    }, (error) => {
-         // Handle errors during subscription (rare)
-         console.error("Error in onAuthStateChanged listener:", error);
-         setLoading(false); // Ensure loading stops even on listener error
-         initialLoadDone.current = true; // Mark initial load as done even on error
-    });
+        }, (error) => {
+             // Handle errors during subscription (rare)
+             console.error("Error in onAuthStateChanged listener:", error);
+             setLoading(false); // Ensure loading stops even on listener error
+             initialLoadDone.current = true; // Mark initial load as done even on error
+        });
+     } catch (error) {
+        console.error("Error subscribing to onAuthStateChanged:", error);
+        setLoading(false);
+        initialLoadDone.current = true;
+     }
 
     // Cleanup subscription on unmount
     return () => {
-        console.log("AuthProvider: Unsubscribing from Auth State Changes.");
-        unsubscribe();
+      if (unsubscribe) {
+          console.log("AuthProvider: Unsubscribing from Auth State Changes.");
+          unsubscribe();
+      }
     };
   }, []); // Empty dependency array ensures this runs only once on mount
 
@@ -116,7 +182,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
-      {children}
+        <AuthErrorBoundary>
+             {children}
+        </AuthErrorBoundary>
     </AuthContext.Provider>
   );
 };
