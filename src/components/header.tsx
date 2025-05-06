@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
-import { Code, LogOut, User as UserIcon, Settings } from 'lucide-react'; // Using Code icon for logo
+import { Code, LogOut, User as UserIcon, Settings, Compass } from 'lucide-react'; // Using Code icon for logo, added Compass for Explore
 import { useAuth } from '@/context/auth-context'; // Import useAuth hook
 import { auth } from '@/lib/firebase/client'; // Import Firebase auth instance
 import { signOut } from 'firebase/auth';
@@ -19,13 +19,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { AuthDialog } from './auth-dialog'; // Import the AuthDialog component
 import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation'; // Import hooks
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'; // Import hooks
+import { Skeleton } from '@/components/ui/skeleton'; // For loading state
+import { cn } from '@/lib/utils'; // For conditional class names
 
 export function Header() {
   const { user, loading } = useAuth();
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter(); // Initialize useRouter
+  const pathname = usePathname(); // Get current pathname
 
   // Effect to check for 'auth=true' in URL and open dialog
   useEffect(() => {
@@ -68,19 +71,32 @@ export function Header() {
              </span>
            </Link>
         </div>
-         {/* Navigation Links (Optional) */}
+         {/* Navigation Links */}
          <nav className="flex items-center gap-4 text-sm lg:gap-6">
            <Link
              href="/problems"
-             className="text-foreground/60 transition-colors hover:text-foreground/80"
+             className={cn(
+                "transition-colors hover:text-foreground/80",
+                pathname === "/problems" ? "text-foreground" : "text-foreground/60"
+             )}
            >
              Problems
+           </Link>
+           <Link
+             href="/explore"
+             className={cn(
+                "transition-colors hover:text-foreground/80",
+                 pathname === "/explore" ? "text-foreground" : "text-foreground/60"
+             )}
+           >
+             <Compass className="mr-1 h-4 w-4 inline-block sm:mr-0 sm:hidden" /> {/* Icon for mobile */}
+             <span className="hidden sm:inline-block">Explore</span> {/* Text for desktop */}
            </Link>
            {/* Add more links like Contests, Discuss, etc. */}
          </nav>
         <div className="flex flex-1 items-center justify-end space-x-2">
           {loading ? (
-            // Optional: Add skeleton loaders for buttons while loading
+            // Skeleton loaders for buttons while loading
             <>
               <Skeleton className="h-9 w-20 rounded-md bg-muted" />
               <Skeleton className="h-9 w-9 rounded-full bg-muted" />
@@ -133,9 +149,4 @@ export function Header() {
        <AuthDialog isOpen={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen} />
     </header>
   );
-}
-
-// Added Skeleton component for loading state
-function Skeleton({ className }: { className?: string }) {
-  return <div className={`animate-pulse bg-muted ${className}`} />;
 }
