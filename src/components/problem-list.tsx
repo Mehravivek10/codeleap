@@ -1,29 +1,20 @@
-'use client'; // Convert to Client Component for potential future interactivity
+'use client'; // ProblemList remains a client component
 
 import Link from 'next/link';
 import type { Problem } from '@/services/leetcode';
-// Removed Card imports as they are not used directly here
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { CheckCircle2, Pencil, Minus } from 'lucide-react'; // Use Minus for Todo
-import type { UserProblemStatus, ProblemStatus } from '@/types'; // Import the type
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip
-
+import type { UserProblemStatus, ProblemStatus, ProblemStatusDetail } from '@/types'; // Import types
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"; // Import Tooltip components
 
 interface ProblemListProps {
   problems: Problem[];
-  userProgress: UserProblemStatus; // Receive pre-fetched user progress
-  // selectedProblemSlug?: string; // Kept for potential future use
+  userProgress: UserProblemStatus; // Receive pre-fetched or client-fetched user progress
 }
 
 export function ProblemList({ problems, userProgress }: ProblemListProps) {
-  // Client-side state for filtering/sorting can be added here later
-  // const [filteredProblems, setFilteredProblems] = useState(problems);
-  // useEffect(() => {
-  //   // Apply filtering/sorting logic based on state
-  //   setFilteredProblems(applyFilters(problems, filterState));
-  // }, [problems, filterState]);
 
   const getDifficultyClass = (difficulty: string): string => {
     switch (difficulty.toLowerCase()) {
@@ -52,9 +43,7 @@ export function ProblemList({ problems, userProgress }: ProblemListProps) {
          return 'Todo'; // Default to 'Todo' if data is missing or in unexpected format
    };
 
-
   return (
-    // <TooltipProvider delayDuration={100}> {/* Provider moved to parent page */}
     <div className="relative w-full overflow-x-auto border rounded-lg shadow-sm"> {/* Added shadow */}
        <Table>
           <TableHeader>
@@ -67,7 +56,6 @@ export function ProblemList({ problems, userProgress }: ProblemListProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {/* Use filteredProblems here if implementing client-side filtering */}
             {problems.map((problem) => {
                 const status = getProblemStatusData(problem.slug);
                 return (
@@ -75,7 +63,6 @@ export function ProblemList({ problems, userProgress }: ProblemListProps) {
                     key={problem.slug}
                     className={cn(
                       'hover:bg-muted/40 transition-colors duration-150'
-                      // selectedProblemSlug === problem.slug && 'bg-accent/10' // Example highlight
                     )}
                   >
                     <TableCell className="pl-3 text-center py-2.5"> {/* Adjusted padding */}
@@ -153,6 +140,5 @@ export function ProblemList({ problems, userProgress }: ProblemListProps) {
           </TableBody>
         </Table>
     </div>
-    // </TooltipProvider>
   );
 }
