@@ -212,6 +212,306 @@ const mockProblems: Problem[] = [
     tags: ['Array', 'Sorting'],
     category: 'Interview',
     companies: ['Facebook', 'Amazon', 'Google', 'Microsoft', 'Bloomberg'],
+  },
+  {
+    title: 'Binary Tree Inorder Traversal',
+    difficulty: 'Easy',
+    statement: 'Given the root of a binary tree, return the inorder traversal of its nodes\' values.',
+    slug: slugify('Binary Tree Inorder Traversal'),
+    acceptance: '70.2%',
+    tags: ['Tree', 'Stack', 'Depth-First Search'],
+    category: 'Recursion',
+    companies: ['Amazon', 'Bloomberg']
+  },
+  {
+    title: '3Sum',
+    difficulty: 'Medium',
+    statement: 'Given an integer array nums, return all the triplets [nums[i], nums[j], nums[k]] such that i != j, i != k, and j != k, and nums[i] + nums[j] + nums[k] == 0.',
+    slug: slugify('3Sum'),
+    acceptance: '35.4%',
+    tags: ['Array', 'Two Pointers', 'Sorting'],
+    category: 'Interview',
+    companies: ['Facebook', 'Amazon', 'Google']
+  },
+  {
+    title: 'Valid Anagram',
+    difficulty: 'Easy',
+    statement: 'Given two strings s and t, return true if t is an anagram of s, and false otherwise.',
+    slug: slugify('Valid Anagram'),
+    acceptance: '62.0%',
+    tags: ['Hash Table', 'String', 'Sorting'],
+    category: 'Interview',
+    companies: ['Google', 'Microsoft']
+  },
+  {
+    title: 'Group Anagrams',
+    difficulty: 'Medium',
+    statement: 'Given an array of strings strs, group the anagrams together. You can return the answer in any order.',
+    slug: slugify('Group Anagrams'),
+    acceptance: '67.5%',
+    tags: ['Hash Table', 'String', 'Sorting'],
+    category: 'Interview',
+    companies: ['Amazon', 'Airbnb']
+  },
+  {
+    title: 'LRU Cache',
+    difficulty: 'Medium',
+    statement: 'Design a data structure that follows the constraints of a Least Recently Used (LRU) cache.',
+    slug: slugify('LRU Cache'),
+    acceptance: '41.9%',
+    tags: ['Hash Table', 'Linked List', 'Design'],
+    category: 'Design',
+    companies: ['Facebook', 'Amazon', 'Google']
+  },
+  {
+    title: 'Word Break',
+    difficulty: 'Medium',
+    statement: 'Given a string s and a dictionary of strings wordDict, return true if s can be segmented into a space-separated sequence of one or more dictionary words.',
+    slug: slugify('Word Break'),
+    acceptance: '45.3%',
+    tags: ['Dynamic Programming', 'String'],
+    category: 'Interview',
+    companies: ['Facebook', 'Amazon']
+  },
+  {
+    title: 'Course Schedule',
+    difficulty: 'Medium',
+    statement: 'There are a total of numCourses courses you have to take, labeled from 0 to numCourses-1. Some courses may have prerequisites. Determine if you can finish all courses.',
+    slug: slugify('Course Schedule'),
+    acceptance: '47.6%',
+    tags: ['Graph', 'Topological Sort', 'Depth-First Search', 'Breadth-First Search'],
+    category: 'Graph',
+    companies: ['Google', 'Amazon']
+  },
+  {
+    title: 'Number of Islands',
+    difficulty: 'Medium',
+    statement: 'Given an m x n 2D binary grid grid which represents a map of \'1\'s (land) and \'0\'s (water), return the number of islands.',
+    slug: slugify('Number of Islands'),
+    acceptance: '64.1%',
+    tags: ['Depth-First Search', 'Breadth-First Search', 'Union Find'],
+    category: 'Graph',
+    companies: ['Amazon', 'Microsoft', 'Facebook']
+  },
+  {
+    title: 'Alien Dictionary',
+    difficulty: 'Hard',
+    statement: 'There is a new alien language that uses the English alphabet. However, the order among letters is unknown. Given a list of words from the alien language, derive its alphabet order.',
+    slug: slugify('Alien Dictionary'),
+    acceptance: '33.3%',
+    tags: ['Graph', 'Topological Sort'],
+    category: 'Graph',
+    companies: ['Facebook', 'Google']
+  },
+  {
+    title: 'Serialize and Deserialize Binary Tree',
+    difficulty: 'Hard',
+    statement: 'Design an algorithm to serialize and deserialize a binary tree.',
+    slug: slugify('Serialize and Deserialize Binary Tree'),
+    acceptance: '55.8%',
+    tags: ['Tree', 'Design', 'Depth-First Search', 'Breadth-First Search'],
+    category: 'Design',
+    companies: ['Facebook', 'Amazon']
+  },
+  {
+    title: 'Coin Change',
+    difficulty: 'Medium',
+    statement: 'You are given an integer array coins representing coins of different denominations and an integer amount representing a total amount of money. Return the fewest number of coins needed to make up that amount.',
+    slug: slugify('Coin Change'),
+    acceptance: '42.7%',
+    tags: ['Dynamic Programming'],
+    category: 'Interview',
+    companies: ['Amazon', 'Microsoft']
+  },
+  {
+    title: 'Edit Distance',
+    difficulty: 'Hard',
+    statement: 'Given two strings word1 and word2, return the minimum number of operations required to convert word1 to word2.',
+    slug: slugify('Edit Distance'),
+    acceptance: '58.1%',
+    tags: ['Dynamic Programming', 'String'],
+    category: 'Interview',
+    companies: ['Google', 'Facebook']
+  },
+  {
+    title: 'Implement Trie (Prefix Tree)',
+    difficulty: 'Medium',
+    statement: 'A trie (pronounced as "try") or prefix tree is a tree data structure used to efficiently store and retrieve keys in a dataset of strings.',
+    slug: slugify('Implement Trie (Prefix Tree)'),
+    acceptance: '61.2%',
+    tags: ['Design', 'Trie'],
+    category: 'Design',
+    companies: ['Google', 'Amazon']
+  },
+  {
+    title: 'Find Median from Data Stream',
+    difficulty: 'Hard',
+    statement: 'The median is the middle value in an ordered integer list. Implement a data structure that supports adding numbers and finding the median efficiently.',
+    slug: slugify('Find Median from Data Stream'),
+    acceptance: '50.0%',
+    tags: ['Two Heaps', 'Design'],
+    category: 'Design',
+    companies: ['Google', 'Uber']
+  },
+  {
+    title: 'Sliding Window Maximum',
+    difficulty: 'Hard',
+    statement: 'You are given an array of integers nums, and there is a sliding window of size k which moves from the very left of the array to the very right. Return the maximum value in each window.',
+    slug: slugify('Sliding Window Maximum'),
+    acceptance: '45.2%',
+    tags: ['Monotonic Queue', 'Deque', 'Sliding Window'],
+    category: 'Interview',
+    companies: ['Amazon', 'Facebook']
+  },
+  {
+    title: 'Longest Substring Without Repeating Characters',
+    difficulty: 'Medium',
+    statement: 'Given a string s, find the length of the longest substring without repeating characters.',
+    slug: slugify('Longest Substring Without Repeating Characters'),
+    acceptance: '33.0%',
+    tags: ['Hash Table', 'String', 'Sliding Window'],
+    category: 'Interview',
+    companies: ['Amazon', 'Google']
+  },
+  {
+    title: 'Minimum Window Substring',
+    difficulty: 'Hard',
+    statement: 'Given two strings s and t, return the minimum window substring of s such that every character in t is included in the window.',
+    slug: slugify('Minimum Window Substring'),
+    acceptance: '40.1%',
+    tags: ['Hash Table', 'String', 'Sliding Window'],
+    category: 'Interview',
+    companies: ['Facebook', 'Amazon']
+  },
+  {
+    title: 'K Closest Points to Origin',
+    difficulty: 'Medium',
+    statement: 'Given an array of points where points[i] = [xi, yi] and an integer k, return the k closest points to the origin.',
+    slug: slugify('K Closest Points to Origin'),
+    acceptance: '65.0%',
+    tags: ['Divide and Conquer', 'Quickselect', 'Heap'],
+    category: 'Interview',
+    companies: ['Google', 'Uber']
+  },
+  {
+    title: 'Top K Frequent Elements',
+    difficulty: 'Medium',
+    statement: 'Given an integer array nums and an integer k, return the k most frequent elements.',
+    slug: slugify('Top K Frequent Elements'),
+    acceptance: '63.4%',
+    tags: ['Hash Table', 'Heap', 'Bucket Sort'],
+    category: 'Interview',
+    companies: ['Facebook', 'Amazon']
+  },
+  {
+    title: 'Add Two Numbers',
+    difficulty: 'Medium',
+    statement: 'You are given two non-empty linked lists representing two non-negative integers. Add the two numbers and return the sum as a linked list.',
+    slug: slugify('Add Two Numbers'),
+    acceptance: '42.0%',
+    tags: ['Linked List', 'Math'],
+    category: 'Interview',
+    companies: ['Amazon', 'Microsoft']
+  },
+  {
+    title: 'Rotate Image',
+    difficulty: 'Medium',
+    statement: 'You are given an n x n 2D matrix representing an image. Rotate the image by 90 degrees (clockwise).',
+    slug: slugify('Rotate Image'),
+    acceptance: '71.4%',
+    tags: ['Array', 'Matrix'],
+    category: 'Interview',
+    companies: ['Amazon', 'Microsoft']
+  },
+  {
+    title: 'Spiral Matrix',
+    difficulty: 'Medium',
+    statement: 'Given an m x n matrix, return all elements of the matrix in spiral order.',
+    slug: slugify('Spiral Matrix'),
+    acceptance: '43.1%',
+    tags: ['Matrix', 'Simulation'],
+    category: 'Interview',
+    companies: ['Amazon']
+  },
+  {
+    title: 'Pacific Atlantic Water Flow',
+    difficulty: 'Medium',
+    statement: 'There is an m x n rectangular island that borders both the Pacific Ocean and Atlantic Ocean. Given a matrix of heights, return the list of coordinates that can flow to both oceans.',
+    slug: slugify('Pacific Atlantic Water Flow'),
+    acceptance: '55.0%',
+    tags: ['Depth-First Search', 'Breadth-First Search', 'Matrix'],
+    category: 'Graph',
+    companies: ['Google']
+  },
+  {
+    title: 'House Robber',
+    difficulty: 'Medium',
+    statement: 'You are a professional robber planning to rob houses along a street. Each house has a certain amount of money. Return the maximum amount of money you can rob tonight without alerting the police.',
+    slug: slugify('House Robber'),
+    acceptance: '50.8%',
+    tags: ['Dynamic Programming'],
+    category: 'Interview',
+    companies: ['Amazon']
+  },
+  {
+    title: 'House Robber II',
+    difficulty: 'Medium',
+    statement: 'Similar to House Robber, but houses are arranged in a circle.',
+    slug: slugify('House Robber II'),
+    acceptance: '44.0%',
+    tags: ['Dynamic Programming'],
+    category: 'Interview',
+    companies: ['Amazon']
+  },
+  {
+    title: 'Decode Ways',
+    difficulty: 'Medium',
+    statement: 'A message containing letters from A-Z can be encoded into numbers using the mapping A->1, B->2, ..., Z->26. Given a string s, return the number of ways to decode it.',
+    slug: slugify('Decode Ways'),
+    acceptance: '29.1%',
+    tags: ['Dynamic Programming', 'String'],
+    category: 'Interview',
+    companies: ['Facebook']
+  },
+  {
+    title: 'Binary Search',
+    difficulty: 'Easy',
+    statement: 'Given an array of integers nums which is sorted in ascending order, and an integer target, write a function to search target in nums.',
+    slug: slugify('Binary Search'),
+    acceptance: '58.2%',
+    tags: ['Binary Search', 'Array'],
+    category: 'Fundamentals',
+    companies: ['General']
+  },
+  {
+    title: 'First Bad Version',
+    difficulty: 'Easy',
+    statement: 'You are a product manager and currently leading a team to develop a new product. Find the first bad version given an API isBadVersion.',
+    slug: slugify('First Bad Version'),
+    acceptance: '40.0%',
+    tags: ['Binary Search'],
+    category: 'Fundamentals',
+    companies: ['General']
+  },
+  {
+    title: 'Search a 2D Matrix',
+    difficulty: 'Medium',
+    statement: 'You are given an m x n integer matrix matrix with the following two properties: Each row is sorted in non-decreasing order. The first integer of each row is greater than the last integer of the previous row.',
+    slug: slugify('Search a 2D Matrix'),
+    acceptance: '47.0%',
+    tags: ['Binary Search', 'Matrix'],
+    category: 'Interview',
+    companies: ['Facebook']
+  },
+  {
+    title: 'Kth Largest Element in an Array',
+    difficulty: 'Medium',
+    statement: 'Given an integer array nums and an integer k, return the kth largest element in the array.',
+    slug: slugify('Kth Largest Element in an Array'),
+    acceptance: '63.9%',
+    tags: ['Heap', 'Quickselect'],
+    category: 'Interview',
+    companies: ['Amazon']
   }
 ];
 

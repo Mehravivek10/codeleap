@@ -103,21 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const sessionHandlingInProgress = useRef(false); // Prevent concurrent session calls
 
   useEffect(() => {
-    // Ensure Firebase client auth is initialized before subscribing
-    // Check if auth object has necessary methods, indicating it's likely initialized
-    if (!auth || typeof auth.onAuthStateChanged !== 'function') {
-        console.error("Firebase auth instance not available or not initialized in AuthProvider.");
-        // Attempt to delay slightly in case initialization is happening
-        setTimeout(() => {
-            if (!auth || typeof auth.onAuthStateChanged !== 'function') {
-                console.error("Firebase auth still not available after delay.");
-                setLoading(false); // Stop loading if auth is definitively missing
-            }
-        }, 500); // Wait 500ms
-        return;
-    }
-
-
+    // Subscribe to auth state changes
     console.log("AuthProvider: Subscribing to auth state changes...");
     let unsubscribe: (() => void) | null = null;
 

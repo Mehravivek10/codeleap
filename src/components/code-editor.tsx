@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog" // For Submission History
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'; // Import Tooltip
 import { formatDistanceToNow } from 'date-fns'; // For Submission History
+import Editor from '@monaco-editor/react';
 
 
 interface CodeEditorProps {
@@ -310,8 +311,8 @@ export function CodeEditor({ userId, problemTitle, problemStatement, problemSlug
 
   return (
     <Card className="flex flex-col h-full shadow-none border-none rounded-none overflow-hidden bg-card">
-       {/* Editor Actions Toolbar */}
-        <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/40">
+      {/* Editor Actions Toolbar */}
+      <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/40">
             <div className="flex items-center gap-2">
                  <Select value={language} onValueChange={setLanguage}>
                     <SelectTrigger className="h-8 w-[130px] text-xs focus:ring-1 focus:ring-offset-0 border-border bg-background focus:ring-ring">
@@ -413,14 +414,20 @@ export function CodeEditor({ userId, problemTitle, problemStatement, problemSlug
 
       {/* Editor Area */}
       <CardContent className="flex-grow p-0 relative">
-        {/* Consider using a proper code editor component like Monaco Editor for syntax highlighting etc. */}
-        <Textarea
-          placeholder={`// Write your ${problemTitle} solution in ${language} here...\n\nfunction solve() {\n  // Your code logic\n}\n`}
-          className="absolute inset-0 w-full h-full resize-none border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 font-mono bg-background text-foreground p-4 text-sm leading-relaxed"
+        <Editor
+          height="100%"
+          defaultLanguage={language}
+          language={language}
+          theme={typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? 'vs-dark' : 'light'}
           value={code}
-          onChange={(e) => setCode(e.target.value)}
-          aria-label={`Code editor for ${problemTitle}`}
-          spellCheck="false" // Disable spellcheck for code
+          onChange={(val) => setCode(val ?? '')}
+          options={{
+            fontSize: 14,
+            minimap: { enabled: false },
+            scrollBeyondLastLine: false,
+            wordWrap: 'on',
+            automaticLayout: true,
+          }}
         />
       </CardContent>
 

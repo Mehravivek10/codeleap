@@ -1,7 +1,7 @@
 
 // src/app/api/auth/session/route.ts
 import { NextResponse, type NextRequest } from 'next/server';
-import { adminAuth } from '@/lib/firebase/admin';
+import { getAdminAuth } from '@/lib/firebase/admin';
 
 export const runtime = 'nodejs'; // Necessary for firebase-admin
 
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const expiresIn = 60 * 60 * 24 * 5 * 1000;
 
     // Create the session cookie. This will also verify the ID token.
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
+    const sessionCookie = await getAdminAuth().createSessionCookie(idToken, { expiresIn });
 
     // Set cookie policy for session cookie.
     const options = {
@@ -51,13 +51,13 @@ export async function DELETE(request: NextRequest) {
 
      // Verify the session cookie. In this case an additional check is added to detect
      // if the user's Firebase session was revoked, user deleted/disabled, etc.
-     const decodedClaims = await adminAuth.verifySessionCookie(
+     const decodedClaims = await getAdminAuth().verifySessionCookie(
        sessionCookie,
        true /** checkRevoked */
      );
 
      // Revoke the refresh tokens associated with the session cookie for enhanced security.
-     await adminAuth.revokeRefreshTokens(decodedClaims.sub);
+     await getAdminAuth().revokeRefreshTokens(decodedClaims.sub);
 
      // Clear the session cookie by setting its maxAge to 0.
      const response = NextResponse.json({ status: 'success' }, { status: 200 });
