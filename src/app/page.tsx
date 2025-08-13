@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Code } from 'lucide-react';
 import { cookies } from 'next/headers';
-import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { getAdminAuth, getAdminDb } from '@/lib/firebase/admin';
 import type { UserProblemStatus, UserProfile, ProblemStatusDetail } from '@/types';
 import { format } from 'date-fns'; // Import date-fns functions
 import Link from 'next/link';
@@ -76,13 +76,14 @@ export default async function Home() {
   let progressChartData: MonthlyProgress[] = [];
 
   try {
-    const sessionCookie = cookies().get('session')?.value;
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('session')?.value;
     if (sessionCookie) {
-      const decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
+      const decodedToken = await getAdminAuth().verifySessionCookie(sessionCookie, true);
       const userId = decodedToken.uid;
 
       // Fetch user profile
-      const userRecord = await adminAuth.getUser(userId);
+      const userRecord = await getAdminAuth().getUser(userId);
       userProfile = {
         uid: userRecord.uid,
         email: userRecord.email || null,
@@ -91,7 +92,7 @@ export default async function Home() {
       };
 
       // Fetch user progress
-      const progressDoc = await adminDb.collection('userProgress').doc(userId).get();
+      const progressDoc = await getAdminDb().collection('userProgress').doc(userId).get();
       if (progressDoc.exists) {
         const data = progressDoc.data();
         // Ensure we are reading from the 'problems' map within the document

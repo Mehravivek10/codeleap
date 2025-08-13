@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { notFound } from 'next/navigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cookies } from 'next/headers'; // Import cookies
-import { adminAuth } from '@/lib/firebase/admin'; // Import admin SDK
+import { getAdminAuth } from '@/lib/firebase/admin'; // Lazy getter for admin SDK
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Import Alert
 import { Terminal } from "lucide-react"; // Import icon for Alert
 import Link from 'next/link'; // Import Link
@@ -33,9 +33,10 @@ export default async function ProblemPage({ params }: ProblemPageProps) {
 
    // Check authentication status server-side
    try {
-     const sessionCookie = cookies().get('session')?.value;
+     const cookieStore = await cookies();
+     const sessionCookie = cookieStore.get('session')?.value;
      if (sessionCookie) {
-       const decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
+       const decodedToken = await getAdminAuth().verifySessionCookie(sessionCookie, true);
        userId = decodedToken.uid;
      }
    } catch (error) {

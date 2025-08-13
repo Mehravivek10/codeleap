@@ -136,6 +136,6 @@ const getService = <T>(serviceFactory: (app: App) => T, serviceName: string): T 
 // Export the service instances using the getter function
 // This ensures initialization happens upon module load or first access,
 // and errors are thrown immediately if initialization fails.
-export const adminAuth = getService(app => app.auth(), 'Auth');
-export const adminDb = getService(app => app.firestore(), 'Firestore');
-export const adminStorage = getService(app => app.storage(), 'Storage');
+export const getAdminAuth = () => getService(() => admin.auth(), 'Auth');
+export const getAdminDb = () => getService(() => admin.firestore(), 'Firestore');
+export const getAdminStorage = () => getService(() => admin.storage(), 'Storage');
