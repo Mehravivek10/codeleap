@@ -26,6 +26,8 @@ import {
   sendPasswordResetEmail
 } from 'firebase/auth';
 import { Github, Loader2 } from 'lucide-react';
+import { firestore } from '@/lib/firebase/client';
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
 
 // Inline SVG for Google Icon
 const GoogleIcon = () => (
@@ -61,6 +63,29 @@ export function AuthDialog({ isOpen, onOpenChange }: AuthDialogProps) {
     setPassword('');
     setDisplayName('');
     setResetEmail('');
+  };
+
+  const upsertUserProfile = async (user: { uid: string; displayName: string | null; email: string | null; photoURL: string | null }) => {
+    try {
+      const userRef = doc(firestore, 'users', user.uid);
+      await setDoc(
+        userRef,
+        {
+          uid: user.uid,
+          displayName: user.displayName || null,
+          email: user.email || null,
+          photoURL: user.photoURL || null,
+          updatedAt: Timestamp.now(),
+          createdAt: Timestamp.now(),
+        },
+        { merge: true }
+      );
+      // Ensure userProgress doc exists
+      const progressRef = doc(firestore, 'userProgress', user.uid);
+      await setDoc(progressRef, { problems: {} }, { merge: true });
+    } catch (e) {
+      console.error('Error upserting user profile:', e);
+    }
   };
 
   const handleAuthError = (error: any, action: 'login' | 'signup' | 'google' | 'reset') => {
@@ -112,10 +137,21 @@ export function AuthDialog({ isOpen, onOpenChange }: AuthDialogProps) {
         }
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName });
-        // Need to reload user data to get the displayName
+        await upsertUserProfile({
+          uid: userCredential.user.uid,
+          displayName,
+          email: userCredential.user.email,
+          photoURL: userCredential.user.photoURL,
+        });
         await userCredential.user.reload();
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        await upsertUserProfile({
+          uid: userCredential.user.uid,
+          displayName: userCredential.user.displayName,
+          email: userCredential.user.email,
+          photoURL: userCredential.user.photoURL,
+        });
       }
       handleAuthSuccess();
     } catch (error) {
@@ -129,7 +165,32 @@ export function AuthDialog({ isOpen, onOpenChange }: AuthDialogProps) {
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
+      const res = await signInWithPopup(auth, provider);
+      await upsertUserProfile({
+        uid: res.user.uid,
+        displayName: res.user.displayName,
+        email: res.user.email,
+        photoURL: res.user.photoURL,
+      });
+      handleAuthSuccess();
+    } catch (error) {
+      handleAuthError(error, 'google');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleGithubSignIn = async () => {
+    setIsGoogleLoading(true);
+    const provider = new (await import('firebase/auth')).GithubAuthProvider();
+    try {
+      const res = await signInWithPopup(auth, provider);
+      await upsertUserProfile({
+        uid: res.user.uid,
+        displayName: res.user.displayName,
+        email: res.user.email,
+        photoURL: res.user.photoURL,
+      });
       handleAuthSuccess();
     } catch (error) {
       handleAuthError(error, 'google');
@@ -299,11 +360,10 @@ export function AuthDialog({ isOpen, onOpenChange }: AuthDialogProps) {
                 )}
                 Google
              </Button>
-              {/* Add GitHub button if needed */}
-              {/* <Button variant="outline">
-                <Github className="mr-2 h-4 w-4" />
-                GitHub
-              </Button> */}
+             <Button variant="outline" onClick={handleGithubSignIn} disabled={isGoogleLoading}>
+               <Github className="mr-2 h-4 w-4" />
+               GitHub
+             </Button>
            </div>
         </Tabs>
       </DialogContent>

@@ -140,6 +140,9 @@ export function Header() {
              <>
                <Button variant="outline" size="sm" onClick={() => setIsAuthDialogOpen(true)}>Log In</Button>
                <Button variant="default" size="sm" onClick={() => setIsAuthDialogOpen(true)}>Sign Up</Button>
+               <Link href="/problems" className="hidden sm:block">
+                 <Button variant="secondary" size="sm">Start Coding</Button>
+               </Link>
              </>
           )}
           <ThemeToggle />
