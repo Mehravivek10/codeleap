@@ -1,14 +1,15 @@
+// src/app/problems/[slug]/page.tsx
+'use client'; // This is now a Client Component
 
 import type { Problem } from '@/services/leetcode';
-import { getProblemBySlug, getProblems } from '@/services/leetcode';
+import { getProblemBySlug } from '@/services/leetcode';
 import { CodeEditor } from '@/components/code-editor';
 import { Header } from '@/components/header';
-import { Suspense } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { notFound } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { notFound, useParams } from 'next/navigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cookies } from 'next/headers'; // Import cookies
-import { getAdminAuth } from '@/lib/firebase/admin'; // Lazy getter for admin SDK
+import { adminAuth } from '@/lib/firebase/admin'; // Import admin SDK
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Import Alert
 import { Terminal } from "lucide-react"; // Import icon for Alert
 import Link from 'next/link'; // Import Link
@@ -33,10 +34,9 @@ export default async function ProblemPage({ params }: ProblemPageProps) {
 
    // Check authentication status server-side
    try {
-     const cookieStore = await cookies();
-     const sessionCookie = cookieStore.get('session')?.value;
+     const sessionCookie = cookies().get('session')?.value;
      if (sessionCookie) {
-       const decodedToken = await getAdminAuth().verifySessionCookie(sessionCookie, true);
+       const decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
        userId = decodedToken.uid;
      }
    } catch (error) {
@@ -46,13 +46,12 @@ export default async function ProblemPage({ params }: ProblemPageProps) {
 
 
   return (
-    <TooltipProvider> {/* Wrap with TooltipProvider */}
+    <TooltipProvider>
         <div className="flex flex-col h-screen bg-background text-foreground">
         <Header />
         <main className="flex-grow split-screen overflow-hidden">
             {/* Left Pane: Problem Details */}
             <ScrollArea className="problem-pane border-r border-border">
-            {/* Content from CodeEditor's header section moved here */}
             <div className="p-6">
                 <h1 className="text-2xl font-semibold text-primary mb-1">{problem.title}</h1>
                 <div className='flex items-center gap-2 mb-4'>
@@ -63,38 +62,38 @@ export default async function ProblemPage({ params }: ProblemPageProps) {
                     }`}>
                     {problem.difficulty}
                     </span>
-                    {/* Add other badges like acceptance rate, premium status if needed */}
                 </div>
                 <div className="prose dark:prose-invert max-w-none text-foreground/90">
-                    {/* Render problem statement using Markdown or directly */}
-                    {/* For now, basic rendering */}
                     <p className="whitespace-pre-wrap">{problem.statement}</p>
-                    {/* TODO: Add Examples, Constraints, etc. here */}
-                    {/* Example rendering */}
-                    <h3 className="font-semibold mt-5 mb-2 text-foreground">Examples:</h3>
-                    <pre className="bg-muted text-muted-foreground p-3 rounded text-sm">
-                        <code>
-                        Example 1: ... {'\n'}
-                        Input: ... {'\n'}
-                        Output: ...
-                        </code>
-                    </pre>
+
+                    {problem.examples.map((example, index) => (
+                         <div key={index} className="mt-4">
+                             <h3 className="font-semibold text-foreground mb-1">Example {index + 1}:</h3>
+                             <pre className="bg-muted text-muted-foreground p-3 rounded text-sm whitespace-pre-wrap">
+                                 <code>
+                                     <span className="font-semibold">Input:</span> {example.input}{'\n'}
+                                     <span className="font-semibold">Output:</span> {example.output}
+                                     {example.explanation && `\n<span class="font-semibold">Explanation:</span> ${example.explanation}`}
+                                 </code>
+                             </pre>
+                         </div>
+                    ))}
+
                     <h3 className="font-semibold mt-5 mb-2 text-foreground">Constraints:</h3>
                     <ul className="list-disc list-inside text-sm text-foreground/80">
                         <li>Constraint 1...</li>
                         <li>Constraint 2...</li>
                     </ul>
-
                 </div>
             </div>
             </ScrollArea>
 
             {/* Right Pane: Code Editor or Login Prompt */}
-            <div className="editor-pane p-0"> {/* Remove padding */}
-            {userId ? (
+            <div className="editor-pane p-0">
+            {user ? (
                 // User is logged in, show the editor
                 <CodeEditor
-                userId={userId} // Pass userId to editor
+                userId={user.uid} // Pass userId from auth context
                 problemTitle={problem.title}
                 problemStatement={problem.statement}
                 problemSlug={problem.slug}
@@ -109,9 +108,7 @@ export default async function ProblemPage({ params }: ProblemPageProps) {
                             Please log in or sign up to write and submit your solution.
                         </AlertDescription>
                         <div className="mt-4">
-                            {/* Ideally, trigger the AuthDialog from Header instead of linking */}
                             <Button size="sm" asChild>
-                                {/* This link might not work well if AuthDialog is the preferred method */}
                                 <Link href="/?auth=true">Login / Sign Up</Link>
                             </Button>
                         </div>
@@ -123,22 +120,4 @@ export default async function ProblemPage({ params }: ProblemPageProps) {
         </div>
     </TooltipProvider>
   );
-}
-
-
-// Optional: Generate static paths if you want to pre-render problem pages
-export async function generateStaticParams() {
-  const problems = await getProblems();
-  return problems.map((problem) => ({
-    slug: problem.slug,
-  }));
-}
-
-// Optional: Metadata for the page
-export async function generateMetadata({ params }: ProblemPageProps) {
-  const problem = await getProblemBySlug(params.slug);
-  return {
-    title: `${problem?.title || 'Problem'} | CodeLeap`,
-    description: `Solve the ${problem?.title || 'coding problem'} on CodeLeap. Difficulty: ${problem?.difficulty || ''}.`,
-  };
 }

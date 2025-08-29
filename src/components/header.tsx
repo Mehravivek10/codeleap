@@ -1,12 +1,12 @@
-
+// src/components/header.tsx
 'use client';
 
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
-import { Code, LogOut, User as UserIcon, Settings, Compass } from 'lucide-react'; // Using Code icon for logo, added Compass for Explore
-import { useAuth } from '@/context/auth-context'; // Import useAuth hook
-import { auth } from '@/lib/firebase/client'; // Import Firebase auth instance
+import { Code, LogOut, User as UserIcon, Settings, Compass, MessageSquare, ClipboardCheck } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
+import { auth } from '@/lib/firebase/client';
 import { signOut } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -17,38 +17,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { AuthDialog } from './auth-dialog'; // Import the AuthDialog component
+import { AuthDialog } from './auth-dialog';
 import { useState, useEffect } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation'; // Import hooks
-import { Skeleton } from '@/components/ui/skeleton'; // For loading state
-import { cn } from '@/lib/utils'; // For conditional class names
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 export function Header() {
   const { user, loading } = useAuth();
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const searchParams = useSearchParams();
-  const router = useRouter(); // Initialize useRouter
-  const pathname = usePathname(); // Get current pathname
+  const router = useRouter();
+  const pathname = usePathname();
 
-  // Effect to check for 'auth=true' in URL and open dialog
   useEffect(() => {
     if (searchParams.get('auth') === 'true') {
       setIsAuthDialogOpen(true);
-       // Optional: Remove the query param after opening the dialog
-       const currentPath = window.location.pathname;
-       router.replace(currentPath, undefined); // Removes query params without scroll
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete('auth');
+      router.replace(`${pathname}?${newParams.toString()}`);
     }
-  }, [searchParams, router]); // Add router to dependency array
+  }, [searchParams, router, pathname]);
 
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      // Optional: Show success message or redirect
       console.log("User signed out successfully.");
-      // No need to manually clear cookie here, auth context handles it via API
     } catch (error) {
       console.error('Error signing out:', error);
-      // Optional: Show error message
     }
   };
 
@@ -89,10 +85,26 @@ export function Header() {
                  pathname === "/explore" ? "text-foreground" : "text-foreground/60"
              )}
            >
-             <Compass className="mr-1 h-4 w-4 inline-block sm:mr-0 sm:hidden" /> {/* Icon for mobile */}
-             <span className="hidden sm:inline-block">Explore</span> {/* Text for desktop */}
+             Explore
            </Link>
-           {/* Add more links like Contests, Discuss, etc. */}
+            <Link
+             href="/interview-prep"
+             className={cn(
+                "transition-colors hover:text-foreground/80",
+                 pathname === "/interview-prep" ? "text-foreground" : "text-foreground/60"
+             )}
+           >
+             Interview Prep
+           </Link>
+            <Link
+             href="/discussion"
+             className={cn(
+                "transition-colors hover:text-foreground/80",
+                 pathname === "/discussion" ? "text-foreground" : "text-foreground/60"
+             )}
+           >
+             Discussion
+           </Link>
          </nav>
         <div className="flex flex-1 items-center justify-end space-x-2">
           {loading ? (
@@ -121,10 +133,12 @@ export function Header() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <UserIcon className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
+                 <DropdownMenuItem asChild className="cursor-pointer">
+                   <Link href="/profile">
+                     <UserIcon className="mr-2 h-4 w-4" />
+                     <span>Profile</span>
+                   </Link>
+                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>

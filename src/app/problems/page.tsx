@@ -1,3 +1,4 @@
+
 // src/app/problems/page.tsx
 'use client'; // Convert to Client Component for state management
 
@@ -61,7 +62,15 @@ export default function ProblemsPage() {
           setUserProgress({}); // Clear progress if user logs out
         }
       } catch (error: any) {
-        console.error("Error fetching data on problems page:", error.code || error.message);
+        if (error.code === 'unavailable') {
+            console.error(
+              "Error fetching data on problems page: Firestore is unavailable. " +
+              "This is likely because the Firebase emulators are not running. " +
+              "Please start them with 'firebase emulators:start' and refresh the page."
+            );
+        } else {
+            console.error("Error fetching data on problems page:", error.code || error.message);
+        }
         // Handle error appropriately, maybe show a toast message
       } finally {
         setIsLoading(false);

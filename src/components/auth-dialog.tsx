@@ -16,16 +16,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase/client';
+// Import firebaseInitialized and the auth instance which might be null
+import { auth as firebaseAuthClient, firebaseInitialized, analytics } from '@/lib/firebase/client';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  type Auth, // Import Auth type for casting
 } from 'firebase/auth';
-import { Github, Loader2 } from 'lucide-react';
+import { logEvent } from 'firebase/analytics'; // Import logEvent
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Inline SVG for Google Icon
 const GoogleIcon = () => (
@@ -49,14 +53,26 @@ export function AuthDialog({ isOpen, onOpenChange }: AuthDialogProps) {
   const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-   const [isResetLoading, setIsResetLoading] = useState(false);
-   const [resetEmail, setResetEmail] = useState('');
+  const [isResetLoading, setIsResetLoading] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
 
-  const handleAuthSuccess = () => {
+  const showFirebaseConfigError = () => {
+    toast({
+      title: 'Setup Incomplete',
+      description: 'Firebase is not configured correctly. Authentication is unavailable. Please check environment variables or contact support.',
+      variant: 'destructive',
+      duration: 10000,
+    });
+  };
+
+  const handleAuthSuccess = (isNewUser = false, method = 'email') => {
     toast({ title: 'Success!', description: activeTab === 'login' ? 'Logged in successfully.' : 'Account created successfully.' });
-    onOpenChange(false); // Close dialog on success
-    // Reset form fields
+    if (isNewUser && analytics) {
+        logEvent(analytics, 'sign_up', { method });
+        console.log(`Analytics: Logged 'sign_up' event with method: ${method}`);
+    }
+    onOpenChange(false);
     setEmail('');
     setPassword('');
     setDisplayName('');
@@ -69,11 +85,14 @@ export function AuthDialog({ isOpen, onOpenChange }: AuthDialogProps) {
     if (error.code) {
         switch (error.code) {
             case 'auth/invalid-email':
-                description = 'Please enter a valid email address.';
+            case 'auth/missing-email':
+                description = action === 'reset' && error.code === 'auth/missing-email' ? 'Please enter the email for password reset.' : 'Please enter a valid email address.';
                 break;
             case 'auth/user-not-found':
+                 description = action === 'reset' ? 'No account found with this email for password reset.' : 'No account found with this email. Please sign up or check your email.';
+                 break;
             case 'auth/wrong-password':
-                 description = 'Invalid login credentials. Please check your email and password.';
+                 description = 'Invalid password. Please try again.';
                  break;
             case 'auth/email-already-in-use':
                 description = 'This email is already associated with an account. Please log in.';
@@ -82,42 +101,49 @@ export function AuthDialog({ isOpen, onOpenChange }: AuthDialogProps) {
                 description = 'Password should be at least 6 characters long.';
                 break;
             case 'auth/popup-closed-by-user':
-                description = 'Google Sign-in cancelled.';
+                description = 'Google Sign-in cancelled by user.';
                 break;
             case 'auth/cancelled-popup-request':
             case 'auth/popup-blocked':
-                description = 'Google Sign-in popup blocked. Please enable popups for this site.';
-                break;
-            // Add more specific error codes as needed
-             case 'auth/missing-email':
-                description = 'Please enter the email address for password reset.';
+                description = 'Google Sign-in popup blocked by browser. Please enable popups for this site.';
                 break;
              case 'auth/network-request-failed':
-                 description = 'Network error. Please check your internet connection.';
+                 description = 'Network error. Please check your internet connection and try again.';
+                 break;
+             case 'auth/requires-recent-login':
+                 description = 'This operation is sensitive and requires recent authentication. Please log in again.';
                  break;
              default:
-                 description = `Error: ${error.message}`; // Fallback to Firebase error message
+                 description = `Error: ${error.message || 'Unknown authentication error.'}`;
         }
+    } else if (!firebaseInitialized) {
+        description = 'Firebase is not configured correctly. Authentication is unavailable.';
     }
-    toast({ title: 'Authentication Failed', description, variant: 'destructive' });
+    toast({ title: `${action.charAt(0).toUpperCase() + action.slice(1)} Failed`, description, variant: 'destructive' });
   };
 
   const handleEmailPasswordSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!firebaseInitialized || !firebaseAuthClient) {
+      showFirebaseConfigError();
+      return;
+    }
     setIsLoading(true);
     try {
       if (activeTab === 'signup') {
         if (!displayName.trim()) {
-             throw { code: 'auth/missing-display-name', message: 'Please enter your name.' }; // Custom error
+             handleAuthError({ code: 'auth/missing-display-name', message: 'Please enter your name.' }, 'signup');
+             setIsLoading(false);
+             return;
         }
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(firebaseAuthClient as Auth, email, password);
         await updateProfile(userCredential.user, { displayName });
-        // Need to reload user data to get the displayName
         await userCredential.user.reload();
+        handleAuthSuccess(true, 'password'); // New user with email/password
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(firebaseAuthClient as Auth, email, password);
+        handleAuthSuccess(); // Existing user
       }
-      handleAuthSuccess();
     } catch (error) {
       handleAuthError(error, activeTab);
     } finally {
@@ -126,11 +152,18 @@ export function AuthDialog({ isOpen, onOpenChange }: AuthDialogProps) {
   };
 
   const handleGoogleSignIn = async () => {
+    if (!firebaseInitialized || !firebaseAuthClient) {
+      showFirebaseConfigError();
+      return;
+    }
     setIsGoogleLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      handleAuthSuccess();
+      const result = await signInWithPopup(firebaseAuthClient as Auth, provider);
+      // Check if the user is new by looking at the creation time
+      const metadata = result.user.metadata;
+      const isNewUser = metadata.creationTime === metadata.lastSignInTime;
+      handleAuthSuccess(isNewUser, 'google');
     } catch (error) {
       handleAuthError(error, 'google');
     } finally {
@@ -140,15 +173,19 @@ export function AuthDialog({ isOpen, onOpenChange }: AuthDialogProps) {
 
   const handlePasswordReset = async (event: React.FormEvent) => {
      event.preventDefault();
+     if (!firebaseInitialized || !firebaseAuthClient) {
+      showFirebaseConfigError();
+      return;
+    }
      if (!resetEmail.trim()) {
        handleAuthError({ code: 'auth/missing-email' }, 'reset');
        return;
      }
      setIsResetLoading(true);
      try {
-       await sendPasswordResetEmail(auth, resetEmail);
+       await sendPasswordResetEmail(firebaseAuthClient as Auth, resetEmail);
        toast({ title: 'Password Reset Email Sent', description: 'Check your inbox for instructions to reset your password.' });
-       setResetEmail(''); // Clear the input
+       setResetEmail('');
      } catch (error) {
        handleAuthError(error, 'reset');
      } finally {
@@ -159,153 +196,165 @@ export function AuthDialog({ isOpen, onOpenChange }: AuthDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'login' | 'signup')} className="w-full">
-          <DialogHeader>
-            <DialogTitle className="text-center text-2xl font-bold">
-               {activeTab === 'login' ? 'Welcome Back!' : 'Create an Account'}
-            </DialogTitle>
-            <DialogDescription className="text-center">
-              {activeTab === 'login' ? 'Log in to continue your coding journey.' : 'Join CodeLeap to start solving problems.'}
-            </DialogDescription>
-             <TabsList className="grid w-full grid-cols-2 mt-4">
-                 <TabsTrigger value="login">Log In</TabsTrigger>
-                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
-             </TabsList>
-          </DialogHeader>
+        {!firebaseInitialized ? (
+          <div>
+            <DialogHeader>
+              <DialogTitle className="text-center text-2xl font-bold">Authentication Unavailable</DialogTitle>
+            </DialogHeader>
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Configuration Error</AlertTitle>
+              <AlertDescription>
+                The application is not configured correctly. Please check your project's environment variables and ensure they are set up for Firebase.
+              </AlertDescription>
+            </Alert>
+            <DialogFooter className="mt-4">
+              <Button onClick={() => onOpenChange(false)}>Close</Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'login' | 'signup')} className="w-full">
+            <DialogHeader>
+              <DialogTitle className="text-center text-2xl font-bold">
+                 {activeTab === 'login' ? 'Welcome Back!' : 'Create an Account'}
+              </DialogTitle>
+              <DialogDescription className="text-center">
+                {activeTab === 'login' ? 'Log in to continue your coding journey.' : 'Join CodeLeap to start solving problems.'}
+              </DialogDescription>
+               <TabsList className="grid w-full grid-cols-2 mt-4">
+                   <TabsTrigger value="login">Log In</TabsTrigger>
+                   <TabsTrigger value="signup">Sign Up</TabsTrigger>
+               </TabsList>
+            </DialogHeader>
 
-          <TabsContent value="login">
-            <form onSubmit={handleEmailPasswordSubmit} className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="login-email">Email</Label>
-                <Input
-                  id="login-email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                     <Label htmlFor="login-password">Password</Label>
-                     {/* Forgot Password Link - opens a simple reset form */}
-                     <Dialog>
-                         <DialogTrigger asChild>
-                             <Button variant="link" type="button" className="p-0 h-auto text-xs text-primary">Forgot password?</Button>
-                         </DialogTrigger>
-                         <DialogContent className="sm:max-w-[400px]">
-                             <DialogHeader>
-                                 <DialogTitle>Reset Password</DialogTitle>
-                                 <DialogDescription>
-                                     Enter your email address and we'll send you a link to reset your password.
-                                 </DialogDescription>
-                             </DialogHeader>
-                             <form onSubmit={handlePasswordReset} className="grid gap-4 py-4">
-                                 <div className="grid gap-2">
-                                     <Label htmlFor="reset-email">Email</Label>
-                                     <Input
-                                         id="reset-email"
-                                         type="email"
-                                         placeholder="m@example.com"
-                                         required
-                                         value={resetEmail}
-                                         onChange={(e) => setResetEmail(e.target.value)}
-                                      />
-                                  </div>
-                                  <DialogFooter>
-                                     <Button type="submit" disabled={isResetLoading}>
-                                          {isResetLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                          Send Reset Link
-                                     </Button>
-                                  </DialogFooter>
-                             </form>
-                         </DialogContent>
-                     </Dialog>
-                 </div>
-                <Input
-                  id="login-password"
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <Button type="submit" disabled={isLoading} className="w-full mt-2">
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Log In
-              </Button>
-            </form>
-          </TabsContent>
+            <TabsContent value="login">
+              <form onSubmit={handleEmailPasswordSubmit} className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="login-email">Email</Label>
+                  <Input
+                    id="login-email"
+                    type="email"
+                    placeholder="m@example.com"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between">
+                       <Label htmlFor="login-password">Password</Label>
+                       <Dialog>
+                           <DialogTrigger asChild>
+                               <Button variant="link" type="button" className="p-0 h-auto text-xs text-primary">Forgot password?</Button>
+                           </DialogTrigger>
+                           <DialogContent className="sm:max-w-[400px]">
+                               <DialogHeader>
+                                   <DialogTitle>Reset Password</DialogTitle>
+                                   <DialogDescription>
+                                       Enter your email address and we'll send you a link to reset your password.
+                                   </DialogDescription>
+                               </DialogHeader>
+                               <form onSubmit={handlePasswordReset} className="grid gap-4 py-4">
+                                   <div className="grid gap-2">
+                                       <Label htmlFor="reset-email">Email</Label>
+                                       <Input
+                                           id="reset-email"
+                                           type="email"
+                                           placeholder="m@example.com"
+                                           required
+                                           value={resetEmail}
+                                           onChange={(e) => setResetEmail(e.target.value)}
+                                           disabled={isResetLoading}
+                                        />
+                                    </div>
+                                    <DialogFooter>
+                                       <Button type="submit" disabled={isResetLoading}>
+                                            {isResetLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Send Reset Link
+                                       </Button>
+                                    </DialogFooter>
+                               </form>
+                           </DialogContent>
+                       </Dialog>
+                   </div>
+                  <Input
+                    id="login-password"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" disabled={isLoading} className="w-full mt-2">
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Log In
+                </Button>
+              </form>
+            </TabsContent>
 
-          <TabsContent value="signup">
-            <form onSubmit={handleEmailPasswordSubmit} className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="signup-name">Full Name</Label>
-                <Input
-                  id="signup-name"
-                  placeholder="Your Name"
-                  required
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="signup-email">Email</Label>
-                <Input
-                  id="signup-email"
-                  type="email"
-                  placeholder="m@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="signup-password">Password</Label>
-                <Input
-                  id="signup-password"
-                  type="password"
-                  required
-                  placeholder="Must be at least 6 characters"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <Button type="submit" disabled={isLoading} className="w-full mt-2">
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Account
-              </Button>
-            </form>
-          </TabsContent>
+            <TabsContent value="signup">
+              <form onSubmit={handleEmailPasswordSubmit} className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Input
+                    id="signup-name"
+                    placeholder="Your Name"
+                    required
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="m@example.com"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  <Input
+                    id="signup-password"
+                    type="password"
+                    required
+                    placeholder="Must be at least 6 characters"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <Button type="submit" disabled={isLoading} className="w-full mt-2">
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Create Account
+                </Button>
+              </form>
+            </TabsContent>
 
-           {/* Social Login Buttons */}
-           <div className="relative my-4">
-             <div className="absolute inset-0 flex items-center">
-               <span className="w-full border-t" />
+             <div className="relative my-4">
+               <div className="absolute inset-0 flex items-center">
+                 <span className="w-full border-t" />
+               </div>
+               <div className="relative flex justify-center text-xs uppercase">
+                 <span className="bg-background px-2 text-muted-foreground">
+                   Or continue with
+                 </span>
+               </div>
              </div>
-             <div className="relative flex justify-center text-xs uppercase">
-               <span className="bg-background px-2 text-muted-foreground">
-                 Or continue with
-               </span>
+             <div className="grid grid-cols-1 gap-2">
+               <Button variant="outline" onClick={handleGoogleSignIn} disabled={isGoogleLoading}>
+                  {isGoogleLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <GoogleIcon />
+                  )}
+                  Google
+               </Button>
              </div>
-           </div>
-           <div className="grid grid-cols-1 gap-2"> {/* Changed to 1 column */}
-             <Button variant="outline" onClick={handleGoogleSignIn} disabled={isGoogleLoading}>
-                {isGoogleLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <GoogleIcon /> // Use the inline SVG component
-                )}
-                Google
-             </Button>
-              {/* Add GitHub button if needed */}
-              {/* <Button variant="outline">
-                <Github className="mr-2 h-4 w-4" />
-                GitHub
-              </Button> */}
-           </div>
-        </Tabs>
+          </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   );

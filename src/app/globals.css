@@ -17,7 +17,9 @@ body {
 }
 
 @layer base {
+  /* Light Theme (default) */
   :root {
+<<<<<<< HEAD
     --background: 210 20% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
@@ -51,9 +53,46 @@ body {
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 214 32% 91%;
     --sidebar-ring: 221 83% 53%;
+=======
+    --background: 0 0% 100%; /* White */
+    --foreground: 240 10% 3.9%; /* Dark Gray */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 330 100% 55%; /* Bright Neon Pink */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4.8% 95.9%; /* Light Gray */
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 180 100% 50%; /* Bright Neon Cyan */
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%; /* Light Gray Border */
+    --input: 240 5.9% 90%;
+    --ring: 180 100% 60%; /* Brighter ring for cyan */
+    --chart-1: 330 100% 55%;
+    --chart-2: 180 100% 50%;
+    --chart-3: 210 100% 60%;
+    --chart-4: 150 100% 60%;
+    --chart-5: 240 5% 50%;
+    --radius: 0.5rem;
+    --sidebar-background: 240 4.8% 95.9%;
+    --sidebar-foreground: 240 5.9% 10%;
+    --sidebar-primary: 330 100% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 180 100% 50%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 240 5.9% 90%;
+    --sidebar-ring: 180 100% 60%;
+>>>>>>> dcc129e (Updated codes and fixes few bugs)
   }
 
+  /* Dark Theme */
   .dark {
+<<<<<<< HEAD
     --background: 222 47% 7%;
     --foreground: 210 40% 98%;
     --card: 222 47% 9%;
@@ -90,6 +129,44 @@ body {
     /* Dark theme code block variables */
     --code-background: hsl(222 47% 12%);
     --code-foreground: hsl(210 40% 93%);
+=======
+    --background: 231 15% 18%; /* Dark Blue/Gray */
+    --foreground: 240 8% 95%; /* Light Gray */
+    --card: 231 15% 18%;
+    --card-foreground: 240 8% 95%;
+    --popover: 231 15% 18%;
+    --popover-foreground: 240 8% 95%;
+    --primary: 320 85% 65%; /* Vibrant Pink */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 231 15% 28%; /* Lighter Dark Blue/Gray */
+    --secondary-foreground: 240 8% 95%;
+    --muted: 231 15% 24%; /* Muted Dark Blue/Gray */
+    --muted-foreground: 240 5% 65%;
+    --accent: 170 85% 60%; /* Bright Cyan */
+    --accent-foreground: 231 15% 10%; /* Dark text for contrast on accent */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 231 15% 28%;
+    --input: 231 15% 24%;
+    --ring: 170 85% 60%;
+    --chart-1: 320 85% 65%;
+    --chart-2: 170 85% 60%;
+    --chart-3: 210 100% 60%;
+    --chart-4: 150 100% 60%;
+    --chart-5: 240 5% 50%;
+    --sidebar-background: 231 15% 18%;
+    --sidebar-foreground: 240 8% 95%;
+    --sidebar-primary: 320 85% 65%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 170 85% 60%;
+    --sidebar-accent-foreground: 231 15% 10%;
+    --sidebar-border: 231 15% 28%;
+    --sidebar-ring: 170 85% 60%;
+
+    /* Dark theme code block variables */
+    --code-background: hsl(231 15% 24%);
+    --code-foreground: hsl(240 8% 95%);
+>>>>>>> dcc129e (Updated codes and fixes few bugs)
   }
 }
 
@@ -142,7 +219,7 @@ body {
   .prose h3 { @apply text-lg; }
 
    .prose code {
-     @apply text-foreground bg-muted px-1 py-0.5 rounded text-sm; /* Adjust inline code in prose */
+     @apply text-primary bg-muted px-1 py-0.5 rounded text-sm; /* Adjust inline code in prose */
    }
    .prose pre {
       @apply bg-muted text-muted-foreground p-4 rounded-md overflow-x-auto my-5 text-sm; /* Code block styling */
@@ -172,7 +249,7 @@ body {
        /* @apply prose-a:text-primary; */
      }
      .dark .prose code {
-         @apply bg-muted/50 text-foreground/80;
+         @apply bg-muted/50 text-primary;
      }
      .dark .prose pre {
          @apply bg-muted/40 text-foreground/90;
