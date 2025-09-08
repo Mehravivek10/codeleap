@@ -5,7 +5,7 @@ import { ProblemList } from '@/components/problem-list';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClipboardCheck } from 'lucide-react';
 import { cookies } from 'next/headers';
-import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { getAdminAuth, getAdminDb } from '@/lib/firebase/admin';
 import type { UserProblemStatus } from '@/types';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -18,9 +18,11 @@ export default async function InterviewPrepPage() {
      try {
         const sessionCookie = (await cookies()).get('session')?.value;
         if (sessionCookie) {
-            const decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
+            const auth = getAdminAuth();
+            const db = getAdminDb();
+            const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
             const userId = decodedToken.uid;
-            const progressDoc = await adminDb.collection('userProgress').doc(userId).get();
+            const progressDoc = await db.collection('userProgress').doc(userId).get();
             if (progressDoc.exists) {
                 userProgress = progressDoc.data()?.problems || {};
             }

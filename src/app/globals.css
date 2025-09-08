@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
 body {
   /* Using Geist Sans as the primary font */
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
@@ -19,7 +30,7 @@ body {
 @layer base {
   /* Light Theme (default) */
   :root {
-<<<<<<< HEAD
+
     --background: 210 20% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
@@ -53,7 +64,6 @@ body {
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 214 32% 91%;
     --sidebar-ring: 221 83% 53%;
-=======
     --background: 0 0% 100%; /* White */
     --foreground: 240 10% 3.9%; /* Dark Gray */
     --card: 0 0% 100%;
@@ -87,12 +97,11 @@ body {
     --sidebar-accent-foreground: 0 0% 0%;
     --sidebar-border: 240 5.9% 90%;
     --sidebar-ring: 180 100% 60%;
->>>>>>> dcc129e (Updated codes and fixes few bugs)
   }
 
   /* Dark Theme */
   .dark {
-<<<<<<< HEAD
+
     --background: 222 47% 7%;
     --foreground: 210 40% 98%;
     --card: 222 47% 9%;
@@ -129,7 +138,7 @@ body {
     /* Dark theme code block variables */
     --code-background: hsl(222 47% 12%);
     --code-foreground: hsl(210 40% 93%);
-=======
+
     --background: 231 15% 18%; /* Dark Blue/Gray */
     --foreground: 240 8% 95%; /* Light Gray */
     --card: 231 15% 18%;
@@ -166,20 +175,9 @@ body {
     /* Dark theme code block variables */
     --code-background: hsl(231 15% 24%);
     --code-foreground: hsl(240 8% 95%);
->>>>>>> dcc129e (Updated codes and fixes few bugs)
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-    /* Ensure font smoothing for better text rendering */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
   /* Style for code blocks */
   pre, code {
     font-family: var(--code-font-family);
@@ -243,21 +241,21 @@ body {
      @apply list-decimal list-outside ml-6;
    }
 
-   /* Dark mode prose overrides if needed */
-    .dark .prose {
-       /* Example: Adjust link color in dark mode */
-       /* @apply prose-a:text-primary; */
+   /* Dark mode prose overrides */
+   @media (prefers-color-scheme: dark) {
+     .prose {
+       /* Dark mode styles */
      }
-     .dark .prose code {
-         @apply bg-muted/50 text-primary;
+     .prose code {
+       @apply bg-muted/50 text-primary;
      }
-     .dark .prose pre {
-         @apply bg-muted/40 text-foreground/90;
+     .prose pre {
+       @apply bg-muted/40 text-foreground/90;
      }
-     .dark .prose blockquote {
-         @apply border-border text-muted-foreground;
+     .prose blockquote {
+       @apply border-border text-muted-foreground;
      }
-}
+   }
 
 @layer components {
   .split-screen {

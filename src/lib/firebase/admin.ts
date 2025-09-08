@@ -1,7 +1,6 @@
-
 // src/lib/firebase/admin.ts
 import * as admin from 'firebase-admin';
-import type { App } from 'firebase-admin/app'; // Import App type
+import type { App } from 'firebase-admin/app';
 
 // Store the app instance globally within this module
 let adminAppInstance: App | null = null;
@@ -33,7 +32,7 @@ function initializeAdminApp(): App {
         console.log('Trying service account initialization from environment variables...');
         const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
         const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-        const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+        const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\\\n/g, '\\n');
 
         if (projectId && clientEmail && privateKey) {
              try {
@@ -44,7 +43,21 @@ function initializeAdminApp(): App {
                         clientEmail,
                         privateKey,
                     }),
+                    // Use the emulator in development
+                    ...(process.env.NODE_ENV === 'development' && {
+                        projectId: 'codeleap-emulator',
+                        storageBucket: 'codeleap-emulator.appspot.com'
+                    })
                 });
+                
+                // Connect to emulators in development
+                if (process.env.NODE_ENV === 'development') {
+                    process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:18299';
+                    process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:18199';
+                    process.env.FIREBASE_STORAGE_EMULATOR_HOST = '127.0.0.1:18499';
+                    console.log('Firebase Admin SDK connected to emulators');
+                }
+                
                 console.log('Firebase Admin SDK initialized (service account).');
                 return adminAppInstance;
              } catch (saError: any) {
@@ -54,7 +67,7 @@ function initializeAdminApp(): App {
                      return adminAppInstance;
                 } else {
                      console.error('Firebase Admin SDK initialization failed (service account):', saError);
-                      initializationError = saError;
+                     initializationError = saError;
                      throw saError;
                 }
              }
@@ -78,9 +91,9 @@ function initializeAdminApp(): App {
     } catch (error) {
         console.error("CRITICAL: Failed to initialize Firebase Admin SDK.", error);
         adminAppInstance = null;
-         if (!initializationError) {
-             initializationError = error instanceof Error ? error : new Error(String(error));
-         }
+        if (!initializationError) {
+            initializationError = error instanceof Error ? error : new Error(String(error));
+        }
         throw initializationError;
     }
 }
@@ -96,16 +109,9 @@ const getService = <T>(serviceFactory: (app: App) => T, serviceName: string): T 
     }
 };
 
-<<<<<<< HEAD
-
 // Export the service instances using the getter function
-// This ensures initialization happens upon module load or first access,
-// and errors are thrown immediately if initialization fails.
-export const getAdminAuth = () => getService(() => admin.auth(), 'Auth');
-export const getAdminDb = () => getService(() => admin.firestore(), 'Firestore');
-export const getAdminStorage = () => getService(() => admin.storage(), 'Storage');
-=======
-export const adminAuth = getService(app => app.auth(), 'Auth');
-export const adminDb = getService(app => app.firestore(), 'Firestore');
-export const adminStorage = getService(app => app.storage(), 'Storage');
->>>>>>> dcc129e (Updated codes and fixes few bugs)
+// This ensures initialization happens upon first access
+// and errors are thrown immediately if initialization fails
+export const getAdminAuth = () => getService((app) => admin.auth(), 'Auth');
+export const getAdminDb = () => getService((app) => admin.firestore(), 'Firestore');
+export const getAdminStorage = () => getService((app) => admin.storage(), 'Storage');

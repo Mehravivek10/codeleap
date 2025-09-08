@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-=======
 
->>>>>>> dcc129e (Updated codes and fixes few bugs)
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {

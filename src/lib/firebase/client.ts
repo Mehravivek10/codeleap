@@ -53,9 +53,9 @@ if (typeof window !== 'undefined') {
       const useEmulators = process.env.NODE_ENV === 'development';
       if (useEmulators && !emulatorsConnected) {
         console.log("Connecting to Firebase Emulators (Client)...");
-        connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-        connectFirestoreEmulator(firestore, 'localhost', 8080);
-        connectStorageEmulator(storage, 'localhost', 9199);
+        connectAuthEmulator(auth, 'http://127.0.0.1:18199', { disableWarnings: true });
+        connectFirestoreEmulator(firestore, '127.0.0.1', 18299);
+        connectStorageEmulator(storage, '127.0.0.1', 18499);
         emulatorsConnected = true;
       }
     } catch (error) {

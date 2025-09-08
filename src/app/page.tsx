@@ -1,32 +1,24 @@
-// src/app/page.tsx
-'use client'; // Convert to client component to use hooks for progress
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Code, Trophy, Loader2 } from 'lucide-react';
+import { format } from 'date-fns';
 
 import type { Problem } from '@/services/leetcode';
 import { getProblems } from '@/services/leetcode';
 import { ProblemList } from '@/components/problem-list';
 import { Header } from '@/components/header';
 import { UserProgress } from '@/components/user-progress';
-import { Suspense, useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-<<<<<<< HEAD
-import { Code } from 'lucide-react';
-import { cookies } from 'next/headers';
-import { getAdminAuth, getAdminDb } from '@/lib/firebase/admin';
-import type { UserProblemStatus, UserProfile, ProblemStatusDetail } from '@/types';
-import { format } from 'date-fns'; // Import date-fns functions
-=======
-import { Code, Trophy, Loader2 } from 'lucide-react';
-import type { UserProblemStatus, UserProfile } from '@/types';
-import { format } from 'date-fns';
->>>>>>> dcc129e (Updated codes and fixes few bugs)
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
 import { doc, getDoc } from 'firebase/firestore';
 import { firestore } from '@/lib/firebase/client';
+import type { UserProblemStatus, UserProfile } from '@/types';
 
 // Define the structure for chart data
 interface MonthlyProgress {
@@ -79,7 +71,6 @@ const transformProgressToChartData = (progress: UserProblemStatus): MonthlyProgr
   return chartData;
 };
 
-// This is now a Client Component
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
   const [problems, setProblems] = useState<Problem[]>([]);
@@ -87,36 +78,6 @@ export default function Home() {
   const [userProgress, setUserProgress] = useState<UserProblemStatus>({});
   const [progressChartData, setProgressChartData] = useState<MonthlyProgress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-<<<<<<< HEAD
-  try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get('session')?.value;
-    if (sessionCookie) {
-      const decodedToken = await getAdminAuth().verifySessionCookie(sessionCookie, true);
-      const userId = decodedToken.uid;
-
-      // Fetch user profile
-      const userRecord = await getAdminAuth().getUser(userId);
-      userProfile = {
-        uid: userRecord.uid,
-        email: userRecord.email || null,
-        displayName: userRecord.displayName || null,
-        photoURL: userRecord.photoURL || null,
-      };
-
-      // Fetch user progress
-      const progressDoc = await getAdminDb().collection('userProgress').doc(userId).get();
-      if (progressDoc.exists) {
-        const data = progressDoc.data();
-        // Ensure we are reading from the 'problems' map within the document
-        userProgress = data?.problems || {};
-        // Transform the progress data for the chart
-        progressChartData = transformProgressToChartData(userProgress);
-      } else {
-        // Initialize chart data for a new user (last 6 months with 0 solves)
-        progressChartData = transformProgressToChartData({});
-=======
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
@@ -137,24 +98,24 @@ export default function Home() {
             setUserProgress(data);
             setProgressChartData(transformProgressToChartData(data));
           } else {
-             // If no progress doc, initialize empty
-             setUserProgress({});
-             setProgressChartData(transformProgressToChartData({}));
+            // If no progress doc, initialize empty
+            setUserProgress({});
+            setProgressChartData(transformProgressToChartData({}));
           }
         } else {
-           // If logged out, reset progress and chart
-           setUserProgress({});
-           setProgressChartData(transformProgressToChartData({}));
+          // If logged out, reset progress and chart
+          setUserProgress({});
+          setProgressChartData(transformProgressToChartData({}));
         }
       } catch (error) {
         console.error("Error fetching data on homepage:", error);
-         setUserProgress({});
-         setProgressChartData(transformProgressToChartData({}));
+        setUserProgress({});
+        setProgressChartData(transformProgressToChartData({}));
       } finally {
         setIsLoading(false);
->>>>>>> dcc129e (Updated codes and fixes few bugs)
       }
     }
+
     fetchData();
   }, [user]); // Re-run effect when user logs in or out
 

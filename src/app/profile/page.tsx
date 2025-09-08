@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Trophy, GitCommitVertical, Star, CheckCircle, BarChart, HardDrive, Cpu } from 'lucide-react';
 import { cookies } from 'next/headers';
-import { adminAuth, adminDb } from '@/lib/firebase/admin';
+import { getAdminAuth, getAdminDb } from '@/lib/firebase/admin';
 import { getProblems, type Problem } from '@/services/leetcode';
 import type { UserProblemStatus, UserProfile } from '@/types';
 import { redirect } from 'next/navigation';
@@ -18,7 +18,7 @@ const getInitials = (displayName: string | null | undefined): string => {
     const names = displayName.split(' ');
     if (names.length === 1) return names[0][0].toUpperCase();
     return (names[0][0] + names[names.length - 1][0]).toUpperCase();
-};
+}; 
 
 const countProblemsByDifficulty = (
     userProgress: UserProblemStatus,
@@ -56,8 +56,9 @@ export default async function ProfilePage() {
         if (!sessionCookie) {
             redirect('/?auth=true&redirectedFrom=/profile');
         }
-        const decodedToken = await adminAuth.verifySessionCookie(sessionCookie, true);
-        const userRecord = await adminAuth.getUser(decodedToken.uid);
+        const auth = getAdminAuth();
+        const decodedToken = await auth.verifySessionCookie(sessionCookie, true);
+        const userRecord = await auth.getUser(decodedToken.uid);
         userProfile = {
             uid: userRecord.uid,
             email: userRecord.email || null,
@@ -65,7 +66,8 @@ export default async function ProfilePage() {
             photoURL: userRecord.photoURL || null,
         };
 
-        const progressDoc = await adminDb.collection('userProgress').doc(decodedToken.uid).get();
+        const db = getAdminDb();
+        const progressDoc = await db.collection('userProgress').doc(decodedToken.uid).get();
         if (progressDoc.exists) {
             userProgress = progressDoc.data()?.problems || {};
         }

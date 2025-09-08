@@ -26,10 +26,16 @@ import Editor from '@monaco-editor/react';
 
 
 interface CodeEditorProps {
-  userId: string; // Added userId prop
-  problemTitle: string;
-  problemStatement: string; // Keep statement for hint generation context
-  problemSlug: string;
+  // Core editor props with defaults
+  code?: string;
+  onChange?: (value: string) => void;
+  language?: string;
+  theme?: string;
+  // Optional props for additional functionality
+  userId?: string;
+  problemTitle?: string;
+  problemStatement?: string;
+  problemSlug: string; // Make problemSlug required since it's essential for the component
 }
 
 // Mock function to simulate code execution (replace with actual execution logic)
@@ -85,42 +91,119 @@ async function mockExecuteCode(code: string, language: string, problemSlug: stri
 }
 
 
-export function CodeEditor({ userId, problemTitle, problemStatement, problemSlug }: CodeEditorProps) {
+export function CodeEditor({ 
+  code: propCode = '',
+  onChange: propOnChange = () => {},
+  language: propLanguage = 'javascript',
+  theme = 'vs-dark',
+  userId,
+  problemTitle = '',
+  problemStatement = '',
+  problemSlug 
+}: CodeEditorProps) {
   const { toast } = useToast();
   const [isLoadingHint, setIsLoadingHint] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [code, setCode] = useState('');
-  const [language, setLanguage] = useState('javascript');
   const [output, setOutput] = useState<string>('Console Output / Test Results will appear here...');
-  const [outputType, setOutputType] = useState<'info' | 'success' | 'error' | 'warning'>('info'); // Added 'warning'
+  const [outputType, setOutputType] = useState<'info' | 'success' | 'error' | 'warning'>('info');
+  const [internalCode, setInternalCode] = useState(propCode);
+  const [internalLanguage, setInternalLanguage] = useState(propLanguage);
+  
+  // Update internal state when props change
+  useEffect(() => {
+    setInternalCode(propCode);
+  }, [propCode]);
+  
+  useEffect(() => {
+    setInternalLanguage(propLanguage);
+  }, [propLanguage]);
+  
+  const handleEditorChange = (value: string | undefined) => {
+    if (value !== undefined) {
+      setInternalCode(value);
+      propOnChange(value);
+    }
+  };
+
+  const handleEditorMount = (editor: any, monaco: any) => {
+    // Set editor options
+    editor.updateOptions({
+      minimap: { enabled: false },
+      fontSize: 14,
+      fontFamily: 'Fira Code, monospace',
+      wordWrap: 'on',
+      scrollBeyondLastLine: false,
+      automaticLayout: true,
+      lineNumbers: 'on',
+      renderWhitespace: 'selection',
+      renderLineHighlight: 'all',
+      scrollbar: {
+        vertical: 'auto',
+        horizontal: 'auto',
+      },
+    });
+
+    // Set language for syntax highlighting
+    monaco.editor.setModelLanguage(editor.getModel(), internalLanguage);
+  };
+
+  const handleLanguageSelect = (value: string) => {
+    setInternalLanguage(value);
+    // Save language preference to localStorage if userId is available
+    if (userId && problemSlug) {
+      const userLangKey = `language_${userId}_${problemSlug}`;
+      localStorage.setItem(userLangKey, value);
+    }
+  };
 
   // Function to update user progress in Firestore, now storing more details
   const updateUserProgress = async (newStatus: ProblemStatus) => {
-      if (!userId) return;
+      // Ensure we have all required values
+      if (!userId || !problemSlug) {
+          console.error('Missing required values for updateUserProgress');
+          return;
+      }
+      
       const progressRef = doc(firestore, 'userProgress', userId);
-      const fieldPath = `problems.${problemSlug}`; // Path to the specific problem's status object
+      // Create a type-safe slug constant
+      const slug: string = problemSlug;
+      const fieldPath = `problems.${slug}`;
 
       try {
-           // Fetch current progress to avoid overwriting timestamps unnecessarily
-           const currentProgressSnap = await getDoc(progressRef);
-           const currentData = currentProgressSnap.data()?.problems?.[problemSlug] as ProblemStatusDetail | ProblemStatus | undefined;
-           const currentStatus = typeof currentData === 'object' ? currentData?.status : currentData;
+          // Fetch current progress to avoid overwriting timestamps unnecessarily
+          const currentProgressSnap = await getDoc(progressRef);
+          const problemsData = currentProgressSnap.data()?.problems || {};
+          const currentData = problemsData[slug] as ProblemStatusDetail | ProblemStatus | undefined;
+          const currentStatus = typeof currentData === 'object' ? currentData.status : currentData;
 
-           const newStatusDetail: ProblemStatusDetail = {
-                status: newStatus,
-                // Preserve existing solvedAt timestamp if already solved
-                solvedAt: (newStatus === 'Solved' ? Timestamp.now() : (currentStatus === 'Solved' && typeof currentData === 'object' ? currentData.solvedAt : null)),
-                lastAttemptedAt: Timestamp.now(), // Always update last attempted time
-           };
+          const newStatusDetail: ProblemStatusDetail = {
+              status: newStatus,
+              // Preserve existing solvedAt timestamp if already solved
+              solvedAt: (newStatus === 'Solved' 
+                  ? Timestamp.now() 
+                  : (currentStatus === 'Solved' && typeof currentData === 'object' 
+                      ? currentData.solvedAt 
+                      : null)
+              ),
+              lastAttemptedAt: Timestamp.now(), // Always update last attempted time
+          };
 
-           // Only update if the status is changing or it's the first time setting it
-           if (typeof currentData === 'undefined' || newStatus !== currentStatus || newStatus === 'Attempted') {
-                await setDoc(progressRef, {
-                     problems: {
-                        [problemSlug]: newStatusDetail
-                     }
-                }, { merge: true }); // merge: true is crucial here
+          // Only update if the status is changing or it's the first time setting it
+          if (typeof currentData === 'undefined' || newStatus !== currentStatus || newStatus === 'Attempted') {
+                // Ensure we have a valid slug before updating
+                if (!problemSlug) {
+                    console.error('Cannot update progress: problemSlug is empty');
+                    return;
+                }
+                
+                const updateData: Record<string, any> = {
+                    problems: {
+                        [slug]: newStatusDetail
+                    }
+                };
+                
+                await setDoc(progressRef, updateData, { merge: true });
                 console.log(`User progress updated for ${problemSlug}:`, newStatusDetail);
            }
 
@@ -136,43 +219,42 @@ export function CodeEditor({ userId, problemTitle, problemStatement, problemSlug
 
 
   const handleSubmit = async () => {
-    if (!userId) {
+    if (!internalCode.trim() || !userId || !problemSlug || !problemTitle) {
         toast({ title: 'Login Required', description: 'Please log in to submit your solution.', variant: 'destructive' });
         return;
     }
-    if (code.trim() === '') {
+    if (internalCode.trim() === '') {
          toast({ title: 'Empty Code', description: 'Cannot submit empty code.', variant: 'destructive' });
          return;
      }
 
     setIsSubmitting(true);
-    setOutput(`Submitting solution in ${language}...`);
+    setOutput(`Submitting solution in ${internalLanguage}...`);
     setOutputType('info');
 
     try {
         // --- Execute Code (Replace mock with real execution) ---
-        const executionResult = await mockExecuteCode(code, language, problemSlug);
+        const executionResult = await mockExecuteCode(internalCode, internalLanguage, problemSlug);
         // --- End Execution Logic ---
 
-        const submissionData: Omit<Submission, 'id' | 'submittedAt'> & { submittedAt: Timestamp } = {
-            userId: userId,
-            problemSlug: problemSlug,
-            problemTitle: problemTitle,
-            language: executionResult.language,
-            code: executionResult.code, // Storing code - consider implications
-            status: executionResult.status,
-            submittedAt: Timestamp.now(), // Use server timestamp equivalent on client
-            runtime: executionResult.runtime,
-            memory: executionResult.memory,
-            output: executionResult.output,
-            error: executionResult.error,
-            testCasesPassed: executionResult.testCasesPassed,
-            totalTestCases: executionResult.totalTestCases,
+        const submission: Omit<Submission, 'id' | 'submittedAt'> = {
+            userId,
+            problemSlug,
+            problemTitle,
+            code: internalCode,
+            language: internalLanguage,
+            status: 'Pending',
+            runtime: null,
+            memory: null,
+            output: null,
+            error: null,
+            testCasesPassed: null,
+            totalTestCases: null,
         };
 
         // 1. Save submission details to Firestore
         const submissionsCollection = collection(firestore, 'submissions');
-        const submissionRef = await addDoc(submissionsCollection, submissionData);
+        const submissionRef = await addDoc(submissionsCollection, submission);
         console.log("Submission saved with ID:", submissionRef.id);
 
         // 2. Update user progress based on the result
@@ -220,12 +302,12 @@ export function CodeEditor({ userId, problemTitle, problemStatement, problemSlug
 
 
   const handleRunCode = async () => {
-     if (!userId) {
-         toast({ title: 'Login Required', description: 'Please log in to run code.', variant: 'destructive' });
+     if (!internalCode.trim()) {
+         toast({ title: 'Empty Code', description: 'Cannot run empty code.', variant: 'destructive' });
          return;
      }
-      if (code.trim() === '') {
-          toast({ title: 'Empty Code', description: 'Cannot run empty code.', variant: 'destructive' });
+      if (!userId) {
+          toast({ title: 'Login Required', description: 'Please log in to run code.', variant: 'destructive' });
           return;
       }
 
@@ -235,8 +317,8 @@ export function CodeEditor({ userId, problemTitle, problemStatement, problemSlug
 
      try {
          // --- Execute Code against sample test cases (Replace mock) ---
-         // Typically, "Run" uses simpler, predefined test cases compared to "Submit"
-         const executionResult = await mockExecuteCode(code, language, problemSlug); // Use same mock for simplicity
+        // Typically, "Run" uses simpler, predefined test cases compared to "Submit"
+        const runResult = await mockExecuteCode(internalCode, internalLanguage, problemSlug || 'run'); // Use same mock for simplicity
          // --- End Execution Logic ---
 
          // Update user progress to 'Attempted' only if not already 'Solved'
@@ -251,15 +333,15 @@ export function CodeEditor({ userId, problemTitle, problemStatement, problemSlug
 
 
           // Update output panel (similar to submit, but might show different test cases)
-          let outputText = `Run Result: ${executionResult.status}\n`;
-          if (executionResult.runtime !== null) outputText += `Runtime: ${executionResult.runtime} ms\n`;
-          if (executionResult.memory !== null) outputText += `Memory: ${executionResult.memory} KB\n`;
+          let outputText = `Run Result: ${runResult.status}\n`;
+          if (runResult.runtime !== null) outputText += `Runtime: ${runResult.runtime} ms\n`;
+          if (runResult.memory !== null) outputText += `Memory: ${runResult.memory} KB\n`;
           // Usually "Run" might not show detailed pass/fail counts like submit
-          if (executionResult.output) outputText += `\nConsole Output:\n${executionResult.output}\n`;
-          if (executionResult.error) outputText += `\nError:\n${executionResult.error}\n`;
+          if (runResult.output) outputText += `\nConsole Output:\n${runResult.output}\n`;
+          if (runResult.error) outputText += `\nError:\n${runResult.error}\n`;
 
           setOutput(outputText);
-          setOutputType(executionResult.status === 'Accepted' ? 'success' : executionResult.status.includes('Error') || executionResult.status.includes('Wrong') ? 'error' : 'info');
+          setOutputType(runResult.status === 'Accepted' ? 'success' : runResult.status.includes('Error') || runResult.status.includes('Wrong') ? 'error' : 'info');
 
 
      } catch (error) {
@@ -314,7 +396,7 @@ export function CodeEditor({ userId, problemTitle, problemStatement, problemSlug
       {/* Editor Actions Toolbar */}
       <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/40">
             <div className="flex items-center gap-2">
-                 <Select value={language} onValueChange={setLanguage}>
+                 <Select value={internalLanguage} onValueChange={handleLanguageSelect}>
                     <SelectTrigger className="h-8 w-[130px] text-xs focus:ring-1 focus:ring-offset-0 border-border bg-background focus:ring-ring">
                         <SelectValue placeholder="Language" />
                     </SelectTrigger>
@@ -388,7 +470,7 @@ export function CodeEditor({ userId, problemTitle, problemStatement, problemSlug
                       variant="outline"
                       size="sm"
                       onClick={handleRunCode}
-                      disabled={isSubmitting || isRunning || code.trim() === ''}
+                      disabled={isSubmitting || isRunning || internalCode.trim() === ''}
                       className="h-8 text-sm"
                   >
                        {isRunning ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Play className="mr-1.5 h-4 w-4" />}
@@ -398,7 +480,7 @@ export function CodeEditor({ userId, problemTitle, problemStatement, problemSlug
                     variant="secondary" // Changed variant for visual distinction
                     size="sm"
                     onClick={handleSubmit}
-                    disabled={isSubmitting || isRunning || code.trim() === ''}
+                    disabled={isSubmitting || isRunning || internalCode.trim() === ''}
                     className="h-8 text-sm bg-green-600 hover:bg-green-700 text-primary-foreground dark:bg-green-700 dark:hover:bg-green-800" // Keep green for submit
                  >
                     {isSubmitting ? (
@@ -416,11 +498,12 @@ export function CodeEditor({ userId, problemTitle, problemStatement, problemSlug
       <CardContent className="flex-grow p-0 relative">
         <Editor
           height="100%"
-          defaultLanguage={language}
-          language={language}
+          defaultLanguage={internalLanguage}
+          language={internalLanguage}
           theme={typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? 'vs-dark' : 'light'}
-          value={code}
-          onChange={(val) => setCode(val ?? '')}
+          value={internalCode}
+          onChange={handleEditorChange}
+          onMount={handleEditorMount}
           options={{
             fontSize: 14,
             minimap: { enabled: false },
@@ -457,7 +540,7 @@ export function CodeEditor({ userId, problemTitle, problemStatement, problemSlug
 
 
 interface SubmissionHistoryProps {
-  userId: string;
+  userId?: string;
   problemSlug: string;
 }
 
